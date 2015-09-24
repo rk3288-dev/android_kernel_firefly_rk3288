@@ -4,8 +4,6 @@
 #include <linux/platform_device.h>
 #include <linux/interrupt.h>
 #include <linux/clk.h>
-#include <linux/rockchip/grf.h>
-#include <linux/rockchip/iomap.h>
 #include <linux/mfd/syscon.h>
 #if defined(CONFIG_DEBUG_FS)
 #include <linux/uaccess.h>
