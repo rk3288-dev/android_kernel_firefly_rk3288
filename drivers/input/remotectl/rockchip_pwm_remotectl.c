@@ -334,8 +334,10 @@ static irqreturn_t rockchip_pwm_irq(int irq, void *dev_id)
 				DBG("lpr=0x%x\n", val);
 			}
 			writel_relaxed(PWM_CH0_INT, ddata->base + PWM0_REG_INTSTS);
+#if ! defined(CONFIG_RK_IR_NO_DEEP_SLEEP)
 			if (ddata->state == RMC_PRELOAD)
 				wake_lock_timeout(&ddata->remotectl_wake_lock, HZ);
+#endif
 			return IRQ_HANDLED;
 		}
 	}
@@ -353,8 +355,10 @@ static irqreturn_t rockchip_pwm_irq(int irq, void *dev_id)
 				DBG("lpr=0x%x\n", val);
 			}
 			writel_relaxed(PWM_CH1_INT, ddata->base + PWM1_REG_INTSTS);
+#if ! defined(CONFIG_RK_IR_NO_DEEP_SLEEP)
 			if (ddata->state == RMC_PRELOAD)
 				wake_lock_timeout(&ddata->remotectl_wake_lock, HZ);
+#endif
 			return IRQ_HANDLED;
 		}
 	}
@@ -372,8 +376,10 @@ static irqreturn_t rockchip_pwm_irq(int irq, void *dev_id)
 				DBG("lpr=0x%x\n", val);
 			}
 			writel_relaxed(PWM_CH2_INT, ddata->base + PWM2_REG_INTSTS);
+#if ! defined(CONFIG_RK_IR_NO_DEEP_SLEEP)
 			if (ddata->state == RMC_PRELOAD)
 				wake_lock_timeout(&ddata->remotectl_wake_lock, HZ);
+#endif
 			return IRQ_HANDLED;
 		}
 	}
@@ -391,8 +397,10 @@ static irqreturn_t rockchip_pwm_irq(int irq, void *dev_id)
 				DBG("lpr=0x%x\n", val);
 			}
 			writel_relaxed(PWM_CH3_INT, ddata->base + PWM3_REG_INTSTS);
+#if ! defined(CONFIG_RK_IR_NO_DEEP_SLEEP)
 			if (ddata->state == RMC_PRELOAD)
 				wake_lock_timeout(&ddata->remotectl_wake_lock, HZ);
+#endif
 			return IRQ_HANDLED;
 		}
 	}
