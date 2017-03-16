@@ -11,6 +11,11 @@ menuconfig INPUT_TOUCHSCREEN
 
 if INPUT_TOUCHSCREEN
 
+source "drivers/input/touchscreen/synaptics_dsx/Kconfig"
+
+config TOUCHSCREEN_SYNAPTICS_RK
+		tristate "synaptics touchscreen panel support "
+
 config TOUCHSCREEN_ZET62XX
 	tristate "zet62xx touchscreen driver"
 	help
@@ -20,6 +25,11 @@ config TOUCHSCREEN_GSL3673
 	tristate "gsl3673 touchscreen driver"
 	help
 	  gsl3673 touchscreen driver
+
+config  TOUCHSCREEN_GSLX680_MT70817V2
+	tristate "GSLX680_MT70817V2 touchscreen driver"
+	help
+		GSLX680_MT70817V2 touchscreen driver
 
 config TOUCHSCREEN_GSLX680
 	tristate "gslX680 touchscreen driver"
