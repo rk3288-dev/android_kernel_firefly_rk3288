@@ -144,6 +144,8 @@ static ssize_t show_input(struct device *dev,
 
 	temp = data->ops.read_sensor(attr->index);
 
+    printk("cur temp  %d \n" , temp);
+
 	return sprintf(buf, "%d\n", temp);
 }
 
