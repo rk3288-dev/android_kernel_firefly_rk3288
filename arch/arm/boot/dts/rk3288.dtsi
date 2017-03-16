@@ -428,6 +428,7 @@
 		clock-frequency = <24000000>;
 		clocks = <&clk_uart1>, <&clk_gates6 9>;
 		clock-names = "sclk_uart", "pclk_uart";
+		current-speed = <115200>;
 		reg-shift = <2>;
 		reg-io-width = <4>;
 		dmas = <&pdma1 3>, <&pdma1 4>;
@@ -444,6 +445,7 @@
 		clock-frequency = <24000000>;
 		clocks = <&clk_uart2>, <&clk_gates11 9>;
 		clock-names = "sclk_uart", "pclk_uart";
+		current-speed = <115200>;
 		reg-shift = <2>;
 		reg-io-width = <4>;
 		dmas = <&pdma0 4>, <&pdma0 5>;
@@ -751,7 +753,7 @@
 		pinctrl-1 = <&i2c5_gpio>;
 		clocks = <&clk_gates16 9>, <&clk_gates5 12>, <&clk_gates5 11>;
 		clock-names = "pclk_hdmi", "hdcp_clk_hdmi", "cec_clk_hdmi";
-		rockchip,hdmi_video_source = <DISPLAY_SOURCE_LCDC0>;
+		rockchip,hdmi_video_source = <DISPLAY_SOURCE_LCDC1>;
 		rockchip,hdmi_audio_source = <0>;
 		rockchip,hdcp_enable = <0>;
 		rockchip,cec_enable = <0>;
@@ -832,13 +834,13 @@
 
 	spdif: rockchip-spdif@0xff8b0000 {
 		compatible = "rockchip-spdif";
-		reg = <0xff8b0000 0x10000>;	//8channel
-		//reg = <ff880000 0x10000>;//2channel
-		clocks = <&clk_spdif>, <&clk_spdif_8ch>,<&clk_gates10 11>;
+		//reg = <0xff8b0000 0x10000>;	//8channel
+		reg = <0xff880000 0x10000>;//2channel
+		clocks = <&clk_spdif>, <&clk_spdif_8ch>,<&clk_gates10 10>;
 		clock-names = "spdif_mclk","spdif_8ch_mclk","spdif_hclk";
-		interrupts = <GIC_SPI 86 IRQ_TYPE_LEVEL_HIGH>;
-		dmas = <&pdma0 3>;
-		//dmas = <&pdma0 2>; //2channel
+		interrupts = <GIC_SPI 54 IRQ_TYPE_LEVEL_HIGH>;
+		//dmas = <&pdma0 3>;
+		dmas = <&pdma0 2>; //2channel
 		//#dma-cells = <1>;
 		dma-names = "tx";
 		pinctrl-names = "default";
@@ -1324,6 +1326,9 @@
 		rockchip,isp,cifphy = <1>;
 		rockchip,isp,mipiphy1,reg = <0xff968000 0x4000>;
 		rockchip,gpios = <&gpio7 GPIO_B5 GPIO_ACTIVE_HIGH>;
+		//FireFly
+		gpios-cifpower = <&gpio7 GPIO_B4 GPIO_ACTIVE_HIGH>;
+		gpios-dvppower = <&gpio0 GPIO_B3 GPIO_ACTIVE_HIGH>;
 		rockchip,isp,iommu_enable = <1>;
 		status = "okay";
 	};
