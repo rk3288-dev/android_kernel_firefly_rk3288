@@ -347,6 +347,10 @@ static void rockchip_tsadc_get(int chn, int *temp, int *code)
 
 	mutex_unlock(&tsadc_mutex);
 #else
+   tsadc_writel(0 , TSADC_USER_CON);
+   //udelay(5);
+   tsadc_writel(0x00000200 , TSADC_USER_CON);
+   //udelay(5);
 	*code = tsadc_readl((TSADC_DATA0 + chn*4)) & TSADC_DATA_MASK;
 	for (i = 0; i < ARRAY_SIZE(table) - 1; i++) {
 		if ((*code) <= table[i].code && (*code) > table[i + 1].code)
