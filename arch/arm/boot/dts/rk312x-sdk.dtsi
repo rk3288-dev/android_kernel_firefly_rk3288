@@ -631,9 +631,6 @@
                 support_dc_adp = <0>;
                 power_dc2otg = <0>;
         };
-        test-power{
-		status = "okay";
-	};
 
 };
 
