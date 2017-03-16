@@ -1821,7 +1821,7 @@ static void ddr_get_datatraing_addr(uint32 *pdtar)
     {
         if(p_ddr_ch[ch]->mem_type != DRAM_MAX)
         {
-            // find out col£¨row£¨bank,config
+            // find out col\A3\ACrow\A3\ACbank,config
             row = READ_ROW_INFO(ch,0);
             bank = READ_BK_INFO(ch);
             col = READ_COL_INFO(ch);
@@ -1982,7 +1982,7 @@ static __sramfunc void ddr_move_to_Config_state(uint32 ch)
     }
 }
 
-//arg∞¸¿®bank_addr∫Õcmd_addr
+//arg\B0\FC\C0\A8bank_addr\BA\CDcmd_addr
 static void __sramfunc ddr_send_command(uint32 ch, uint32 rank, uint32 cmd, uint32 arg)
 {
     pDDR_REG_T    pDDR_Reg = DATA(ddr_ch[ch]).pDDR_Reg;
@@ -1992,9 +1992,9 @@ static void __sramfunc ddr_send_command(uint32 ch, uint32 rank, uint32 cmd, uint
     while(pDDR_Reg->MCMD & start_cmd);
 }
 
-//∂‘type¿‡–ÕµƒDDRµƒº∏∏ˆcsΩ¯––DTT
-//0  DTT≥…π¶
-//!0 DTT ß∞‹
+//\B6\D4type\C0\E0\D0Õµ\C4DDR\B5ƒº\B8\B8\F6cs\BD\F8\D0\D0DTT
+//0  DTT\B3…π\A6
+//!0 DTT ß\B0\DC
 static uint32 __sramfunc ddr_data_training_trigger(uint32 ch)
 {
     uint32        cs;
@@ -2021,9 +2021,9 @@ static uint32 __sramfunc ddr_data_training_trigger(uint32 ch)
     pPHY_Reg->PIR |= INIT | QSTRN | LOCKBYP | ZCALBYP | CLRSR | ICPC;
     return cs;
 }
-//∂‘type¿‡–ÕµƒDDRµƒº∏∏ˆcsΩ¯––DTT
-//0  DTT≥…π¶
-//!0 DTT ß∞‹
+//\B6\D4type\C0\E0\D0Õµ\C4DDR\B5ƒº\B8\B8\F6cs\BD\F8\D0\D0DTT
+//0  DTT\B3…π\A6
+//!0 DTT ß\B0\DC
 static uint32 __sramfunc ddr_data_training(uint32 ch, uint32 cs)
 {
     uint32        i,byte=2,cs_msk;
@@ -2060,7 +2060,7 @@ static uint32 __sramfunc ddr_data_training(uint32 ch, uint32 cs)
                                           | (((pPHY_Reg->DATX8[i].DXDQSTR>>14) & 0x3)<<12);
         }
     }
-    // send some auto refresh to complement the lost while DTT£¨//≤‚µΩ1∏ˆCSµƒDTT◊Ó≥§ ±º‰ «10.7us°£◊Ó∂‡≤π2¥ŒÀ¢–¬
+    // send some auto refresh to complement the lost while DTT\A3\AC//\B2‚µΩ1\B8\F6CS\B5\C4DTT\D7Ó≥§ ±\BC\E4\CA\C710.7us\A1\A3\D7\EE\B6‡≤π2\B4\CEÀ¢\D0\C2
     if(cs > 1)
     {
         ddr_send_command(ch,cs, REF_cmd, 0);
@@ -3787,23 +3787,27 @@ static noinline uint32 ddr_change_freq_sram(void *arg)
     param.freq_slew = freq_slew;
     param.dqstr_value = dqstr_value;
 	rk_fb_set_prmry_screen_status(SCREEN_PREPARE_DDR_CHANGE);
-	if (screen.lcdc_id == 0)
-		cru_writel(0 | CRU_W_MSK_SETBITS(down_dclk_div, 8, 0xff),
-			   RK3288_CRU_CLKSELS_CON(27));
-	else if (screen.lcdc_id == 1)
-		cru_writel(0 | CRU_W_MSK_SETBITS(down_dclk_div, 8, 0xff),
-			   RK3288_CRU_CLKSELS_CON(29));
+	if ((screen.type == 4) || (screen.type == 9)) {
+		if (screen.lcdc_id == 0)
+			cru_writel(0 | CRU_W_MSK_SETBITS(down_dclk_div, 8, 0xff),
+			 	  RK3288_CRU_CLKSELS_CON(27));
+		else if (screen.lcdc_id == 1)
+			cru_writel(0 | CRU_W_MSK_SETBITS(down_dclk_div, 8, 0xff),
+				   RK3288_CRU_CLKSELS_CON(29));
+	}
 
     call_with_stack(fn_to_pie(rockchip_pie_chunk, &FUNC(ddr_change_freq_sram)),
                     &param,
                     rockchip_sram_stack-(NR_CPUS-1)*PAUSE_CPU_STACK_SIZE);
 
-	if (screen.lcdc_id == 0)
-		cru_writel(0 | CRU_W_MSK_SETBITS(dclk_div, 8, 0xff),
-		RK3288_CRU_CLKSELS_CON(27));
-	else if (screen.lcdc_id == 1)
-		cru_writel(0 | CRU_W_MSK_SETBITS(dclk_div, 8, 0xff),
-		RK3288_CRU_CLKSELS_CON(29));
+	if ((screen.type == 4) || (screen.type == 9)) {
+		if (screen.lcdc_id == 0)
+			cru_writel(0 | CRU_W_MSK_SETBITS(dclk_div, 8, 0xff),
+			RK3288_CRU_CLKSELS_CON(27));
+		else if (screen.lcdc_id == 1)
+			cru_writel(0 | CRU_W_MSK_SETBITS(dclk_div, 8, 0xff),
+			RK3288_CRU_CLKSELS_CON(29));
+	}
 	rk_fb_set_prmry_screen_status(SCREEN_UNPREPARE_DDR_CHANGE);
 
 #if defined (DDR_CHANGE_FREQ_IN_LCDC_VSYNC)
@@ -4213,7 +4217,7 @@ static void __sramfunc ddr_resume(void)
 }
 #endif
 
-//pArg:÷∏’Îƒ⁄»›±Ì æpll pd or not°£
+//pArg:÷∏\D5\EB\C4\DA\C8›±\ED æpll pd or not\A1\A3
 void ddr_reg_save(uint32 *pArg)
 {
     uint32        ch;
