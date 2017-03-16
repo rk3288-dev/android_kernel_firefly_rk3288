@@ -3787,23 +3787,27 @@ static noinline uint32 ddr_change_freq_sram(void *arg)
     param.freq_slew = freq_slew;
     param.dqstr_value = dqstr_value;
 	rk_fb_set_prmry_screen_status(SCREEN_PREPARE_DDR_CHANGE);
-	if (screen.lcdc_id == 0)
-		cru_writel(0 | CRU_W_MSK_SETBITS(down_dclk_div, 8, 0xff),
-			   RK3288_CRU_CLKSELS_CON(27));
-	else if (screen.lcdc_id == 1)
-		cru_writel(0 | CRU_W_MSK_SETBITS(down_dclk_div, 8, 0xff),
-			   RK3288_CRU_CLKSELS_CON(29));
+	if ((screen.type == 4) || (screen.type == 9)) {
+		if (screen.lcdc_id == 0)
+			cru_writel(0 | CRU_W_MSK_SETBITS(down_dclk_div, 8, 0xff),
+			 	  RK3288_CRU_CLKSELS_CON(27));
+		else if (screen.lcdc_id == 1)
+			cru_writel(0 | CRU_W_MSK_SETBITS(down_dclk_div, 8, 0xff),
+				   RK3288_CRU_CLKSELS_CON(29));
+	}
 
     call_with_stack(fn_to_pie(rockchip_pie_chunk, &FUNC(ddr_change_freq_sram)),
                     &param,
                     rockchip_sram_stack-(NR_CPUS-1)*PAUSE_CPU_STACK_SIZE);
 
-	if (screen.lcdc_id == 0)
-		cru_writel(0 | CRU_W_MSK_SETBITS(dclk_div, 8, 0xff),
-		RK3288_CRU_CLKSELS_CON(27));
-	else if (screen.lcdc_id == 1)
-		cru_writel(0 | CRU_W_MSK_SETBITS(dclk_div, 8, 0xff),
-		RK3288_CRU_CLKSELS_CON(29));
+	if ((screen.type == 4) || (screen.type == 9)) {
+		if (screen.lcdc_id == 0)
+			cru_writel(0 | CRU_W_MSK_SETBITS(dclk_div, 8, 0xff),
+			RK3288_CRU_CLKSELS_CON(27));
+		else if (screen.lcdc_id == 1)
+			cru_writel(0 | CRU_W_MSK_SETBITS(dclk_div, 8, 0xff),
+			RK3288_CRU_CLKSELS_CON(29));
+	}
 	rk_fb_set_prmry_screen_status(SCREEN_UNPREPARE_DDR_CHANGE);
 
 #if defined (DDR_CHANGE_FREQ_IN_LCDC_VSYNC)

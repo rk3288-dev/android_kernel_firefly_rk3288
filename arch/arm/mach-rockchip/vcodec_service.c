@@ -702,11 +702,13 @@ static void vcodec_enter_mode(struct vpu_subdev_data *data)
 
 static void vcodec_exit_mode(struct vpu_subdev_data *data)
 {
+#if defined(CONFIG_VCODEC_MMU)
 	if (data->mmu_dev && test_bit(MMU_ACTIVATED, &data->state)) {
 		clear_bit(MMU_ACTIVATED, &data->state);
 		rockchip_iovmm_deactivate(data->dev);
 		data->pservice->curr_mode = VCODEC_RUNNING_MODE_NONE;
 	}
+#endif
 }
 
 static int vpu_get_clk(struct vpu_service_info *pservice)
@@ -2398,6 +2400,7 @@ static void vcodec_init_drvdata(struct vpu_service_info *pservice)
 
 	INIT_DELAYED_WORK(&pservice->power_off_work, vpu_power_off_work);
 
+#if defined(CONFIG_VCODEC_MMU)
 	pservice->ion_client = rockchip_ion_client_create("vpu");
 	if (IS_ERR(pservice->ion_client)) {
 		vpu_err("failed to create ion client for vcodec ret %ld\n",
@@ -2405,6 +2408,7 @@ static void vcodec_init_drvdata(struct vpu_service_info *pservice)
 	} else {
 		vpu_debug(DEBUG_IOMMU, "vcodec ion client create success!\n");
 	}
+#endif
 }
 
 static int vcodec_probe(struct platform_device *pdev)
