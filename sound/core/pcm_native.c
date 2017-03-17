@@ -2144,12 +2144,17 @@ static int snd_pcm_playback_open(struct inode *inode, struct file *file)
 	return err;
 }
 
+extern int snd_hdmiin_capture_mode(bool en);
+
 static int snd_pcm_capture_open(struct inode *inode, struct file *file)
 {
 	struct snd_pcm *pcm;
 	int err = nonseekable_open(inode, file);
 	if (err < 0)
 		return err;
+
+	snd_hdmiin_capture_mode(1);
+
 	pcm = snd_lookup_minor_data(iminor(inode),
 				    SNDRV_DEVICE_TYPE_PCM_CAPTURE);
 	err = snd_pcm_open(file, pcm, SNDRV_PCM_STREAM_CAPTURE);
@@ -2220,11 +2225,13 @@ static int snd_pcm_release(struct inode *inode, struct file *file)
 	struct snd_pcm *pcm;
 	struct snd_pcm_substream *substream;
 	struct snd_pcm_file *pcm_file;
+	int stream = -1;
 
 	pcm_file = file->private_data;
 	substream = pcm_file->substream;
 	if (snd_BUG_ON(!substream))
 		return -ENXIO;
+	stream = substream->stream;
 	pcm = substream->pcm;
 	mutex_lock(&pcm->open_mutex);
 	snd_pcm_release_substream(substream);
@@ -2233,6 +2240,9 @@ static int snd_pcm_release(struct inode *inode, struct file *file)
 	wake_up(&pcm->open_wait);
 	module_put(pcm->card->module);
 	snd_card_file_remove(pcm->card, file);
+
+	if (SNDRV_PCM_STREAM_CAPTURE == stream)
+		snd_hdmiin_capture_mode(0);
 	return 0;
 }
 
