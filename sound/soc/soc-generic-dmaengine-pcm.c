@@ -126,6 +126,61 @@ static const char * const dmaengine_pcm_dma_channel_names[] = {
 	[SNDRV_PCM_STREAM_CAPTURE] = "rx",
 };
 
+struct dma_chan *audio_dma_chan[SPDIF_PLAYBACK+1];
+struct snd_dma_buffer hdmiin_audio_dma_buffer;
+struct dmaengine_hdmiin_audio_pcm_runtime_data *hdmiin_audio_prtd = NULL;
+
+int snd_dmaengine_hdmiin_audio_pcm_open()
+{
+	pr_info("%s: %d\n", __func__, __LINE__);
+
+	if (!hdmiin_audio_prtd)
+		hdmiin_audio_prtd = kzalloc(sizeof(*hdmiin_audio_prtd), GFP_KERNEL);
+	if (!hdmiin_audio_prtd)
+		return -ENOMEM;
+
+	hdmiin_audio_prtd->dma_chan_c = audio_dma_chan[I2S_CAPTURE];
+	hdmiin_audio_prtd->dma_chan_b = audio_dma_chan[I2S_PLAYBACK];
+	hdmiin_audio_prtd->dma_chan_b2 = audio_dma_chan[SPDIF_PLAYBACK];
+
+	
+	hdmiin_audio_prtd->dma_buffer_c = hdmiin_audio_dma_buffer;
+	hdmiin_audio_prtd->dma_buffer_b = hdmiin_audio_dma_buffer;
+	hdmiin_audio_prtd->dma_buffer_b2 = hdmiin_audio_dma_buffer;
+
+	return 0;
+}
+EXPORT_SYMBOL_GPL(snd_dmaengine_hdmiin_audio_pcm_open);
+
+extern struct dmaengine_hdmiin_audio_pcm_runtime_data *hdmiin_audio_prtd;
+int dmaengine_hdmiin_audio_pcm_hw_params(int mode)
+{
+	struct dmaengine_hdmiin_audio_pcm_runtime_data *prtd = hdmiin_audio_prtd;
+	struct dma_chan *chan_c = prtd->dma_chan_c;
+	struct dma_chan *chan_b = prtd->dma_chan_b;
+	struct dma_chan *chan_b2 = prtd->dma_chan_b2;
+	struct dma_slave_config slave_config_c;
+	struct dma_slave_config slave_config_b;
+	struct dma_slave_config slave_config_b2;
+	int ret;
+
+	if (HDMIN_NORMAL_MODE == mode)
+		snd_get_hdmiin_audio_pcm_slave_config(&slave_config_c, I2S_CAPTURE);
+	snd_get_hdmiin_audio_pcm_slave_config(&slave_config_b, I2S_PLAYBACK);
+	snd_get_hdmiin_audio_pcm_slave_config(&slave_config_b2, SPDIF_PLAYBACK);
+
+	if (HDMIN_NORMAL_MODE == mode)
+		ret = dmaengine_slave_config(chan_c, &slave_config_c);
+	ret = dmaengine_slave_config(chan_b, &slave_config_b);
+	ret = dmaengine_slave_config(chan_b2, &slave_config_b2);
+
+	if (ret)
+		return ret;
+	pr_info("%s: %d done\n", __func__, __LINE__);
+	return 0;
+}
+
+
 static int dmaengine_pcm_new(struct snd_soc_pcm_runtime *rtd)
 {
 	struct dmaengine_pcm *pcm = soc_platform_to_pcm(rtd->platform);
@@ -158,6 +213,16 @@ static int dmaengine_pcm_new(struct snd_soc_pcm_runtime *rtd)
 				config->pcm_hardware->buffer_bytes_max);
 		if (ret)
 			goto err_free;
+
+		if (strstr(dma_chan_name(pcm->chan[i]), I2S_CAPTURE_DMA_CHN)) {
+			audio_dma_chan[I2S_CAPTURE] = pcm->chan[i];
+			hdmiin_audio_dma_buffer.area = substream->dma_buffer.area;
+			hdmiin_audio_dma_buffer.addr = substream->dma_buffer.addr;
+		} else if (strstr(dma_chan_name(pcm->chan[i]), I2S_PLAYBACK_DMA_CHN)) {
+			audio_dma_chan[I2S_PLAYBACK] = pcm->chan[i];
+		} else if (strstr(dma_chan_name(pcm->chan[i]), SPDIF_PLAYBACK_DMA_CHN)) {
+			audio_dma_chan[SPDIF_PLAYBACK] = pcm->chan[i];
+		}
 	}
 
 	return 0;
@@ -216,6 +281,7 @@ static void dmaengine_pcm_request_chan_of(struct dmaengine_pcm *pcm,
 		for (i = SNDRV_PCM_STREAM_PLAYBACK; i <= SNDRV_PCM_STREAM_CAPTURE; i++) {
 			pcm->chan[i] = dma_request_slave_channel(dev,
 					dmaengine_pcm_dma_channel_names[i]);
+
 		}
 	}
 }
