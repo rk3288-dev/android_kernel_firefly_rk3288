@@ -59,6 +59,34 @@ static ssize_t display_store_enable(struct device *dev,
 	return size;
 }
 
+static ssize_t display_show_edidread(struct device *dev,
+				   struct device_attribute *attr, char *buf)
+{
+	struct rk_display_device *dsp = dev_get_drvdata(dev);
+	int edidread;
+
+	if (dsp->ops && dsp->ops->getedidread)
+		edidread = dsp->ops->getedidread(dsp);
+	else
+		return 0;
+	return snprintf(buf, PAGE_SIZE, "%d\n", edidread);
+}
+
+static ssize_t display_store_edidread(struct device *dev,
+				    struct device_attribute *attr,
+				    const char *buf, size_t size)
+{
+	struct rk_display_device *dsp = dev_get_drvdata(dev);
+	int edidread;
+
+	if (kstrtoint(buf, 0, &edidread))
+		return size;
+	if (dsp->ops && dsp->ops->setedidread)
+		dsp->ops->setedidread(dsp, edidread);
+	return size;
+}
+
+
 static ssize_t display_show_connect(struct device *dev,
 				    struct device_attribute *attr, char *buf)
 {
@@ -444,6 +472,7 @@ static struct device_attribute display_attrs[] = {
 	__ATTR(audioinfo, S_IRUGO, display_show_sinkaudioinfo, NULL),
 	__ATTR(monspecs, S_IRUGO, display_show_monspecs, NULL),
 	__ATTR(debug, 0664, display_show_debug, display_store_debug),
+	__ATTR(edidread, 0666, display_show_edidread, display_store_edidread),
 	__ATTR_NULL
 };
 

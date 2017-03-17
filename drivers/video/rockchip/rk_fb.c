@@ -1455,7 +1455,6 @@ static int rk_fb_copy_from_loader(struct fb_info *info)
 	return 0;
 }
 #endif
-#ifdef CONFIG_ROCKCHIP_IOMMU
 static int g_last_addr[5][4];
 static int g_now_config_addr[5][4];
 static int g_last_state[5][4];
@@ -1463,6 +1462,7 @@ static int g_now_config_state[5][4];
 int g_last_timeout;
 u32 freed_addr[10];
 u32 freed_index;
+#ifdef CONFIG_ROCKCHIP_IOMMU
 
 #define DUMP_CHUNK 256
 char buf[PAGE_SIZE];
@@ -4269,7 +4269,10 @@ int rk_fb_register(struct rk_lcdc_driver *dev_drv,
 	} else {
                 struct fb_info *extend_fbi = rk_fb->fb[rk_fb->num_fb >> 1];
                 extend_fbi->var.pixclock = rk_fb->fb[0]->var.pixclock;
+
+	if(DISPLAY_POLICY_SDK != rk_fb->disp_policy){
 		extend_fbi->fbops->fb_open(extend_fbi, 1);
+	}
 #if defined(CONFIG_ROCKCHIP_IOMMU)
 		if (dev_drv->iommu_enabled) {
 			if (dev_drv->mmu_dev)

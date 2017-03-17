@@ -412,6 +412,7 @@ struct hdmi {
 
 	int xscale;
 	int yscale;
+	int edidread;
 };
 
 /* HDMI EDID Block Size */
@@ -506,6 +507,8 @@ int hdmi_edid_parse_base(unsigned char *buf,
 			 int *extend_num, struct hdmi_edid *pedid);
 int hdmi_edid_parse_extensions(unsigned char *buf,
 			       struct hdmi_edid *pedid);
+int hdmi_edid_parse_head(unsigned char *buf,
+			 int *extend_num, struct hdmi_edid *pedid);
 
 void hdmi_init_modelist(struct hdmi *hdmi);
 int hdmi_set_lcdc(struct hdmi *hdmi);
