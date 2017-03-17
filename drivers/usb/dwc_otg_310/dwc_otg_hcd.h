@@ -392,7 +392,9 @@ struct dwc_otg_hcd {
 			unsigned port_suspend_change:1;
 			unsigned port_over_current_change:1;
 			unsigned port_l1_change:1;
-			unsigned reserved:26;
+			//unsigned reserved:26;
+			unsigned port_suspend_connect_status:1;
+			unsigned reserved:24;
 		} b;
 	} flags;
 
