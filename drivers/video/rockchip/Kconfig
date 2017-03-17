@@ -67,4 +67,7 @@ source "drivers/video/rockchip/tve/Kconfig"
 source "drivers/video/rockchip/rga/Kconfig"
 source "drivers/video/rockchip/rga2/Kconfig"
 source "drivers/video/rockchip/iep/Kconfig"
+source "drivers/video/rockchip/vga/Kconfig"
+source "drivers/video/rockchip/rgb2hdmi/Kconfig"
+
 
