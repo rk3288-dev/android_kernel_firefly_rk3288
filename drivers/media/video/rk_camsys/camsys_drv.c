@@ -1268,6 +1268,10 @@ static int camsys_platform_probe(struct platform_device *pdev){
     unsigned long i2cmem;
 	camsys_meminfo_t *meminfo;
     unsigned int irq_id;
+    int cifpower_io ;
+	int dvppower_io ;
+	enum of_gpio_flags flags;
+	int io_ret;
     
     err = of_address_to_resource(dev->of_node, 0, &register_res);
     if (err < 0){
@@ -1290,6 +1294,55 @@ static int camsys_platform_probe(struct platform_device *pdev){
         err = -ENOMEM;
         goto fail_end;
     }
+
+
+	cifpower_io = of_get_named_gpio_flags(dev->of_node, "gpios-cifpower", 0, &flags);
+	camsys_trace(1, "1-gpios-cifpower: gpio=%d", cifpower_io);
+	if(gpio_is_valid(cifpower_io)){
+		cifpower_io = of_get_named_gpio_flags(dev->of_node, "gpios-cifpower", 0, &flags);
+		camsys_trace(1, "gpios-cifpower: gpio_request");
+		io_ret = gpio_request(cifpower_io,"cifpower");
+		camsys_trace(1, "1-gpios-cifpower: gpio_request=%d", io_ret);
+		if(io_ret < 0)
+		{
+			camsys_err("Request %s(%d) failed","cifpower", cifpower_io);
+		}
+		else
+		{
+			gpio_direction_output(cifpower_io, 1);
+			gpio_set_value(cifpower_io, 1);
+			camsys_trace(1, "gpios-cifpower: %d high", cifpower_io);
+			while(0)
+			{
+				gpio_set_value(cifpower_io, 1);
+				camsys_trace(1, "gpios-cifpower: %d high", cifpower_io);
+				mdelay(2000);
+				gpio_set_value(cifpower_io, 0);
+				camsys_trace(1, "gpios-cifpower: %d low", cifpower_io);
+				mdelay(2000);
+			}
+		}
+	}
+	/*
+	dvppower_io = of_get_named_gpio_flags(dev->of_node, "gpios-dvppower", 0, &flags);
+	camsys_trace(1, "gpios-dvppower: %d", dvppower_io);
+	if(gpio_is_valid(dvppower_io)){
+		dvppower_io = of_get_named_gpio_flags(dev->of_node, "gpios-dvppower", 0, &flags);
+		gpio_request(dvppower_io,"dvppower");
+		gpio_direction_output(dvppower_io, 1);
+		gpio_set_value(dvppower_io, 1);
+		camsys_trace(1, "gpios-dvppower: %d high", dvppower_io);
+		while(0)
+		{
+			gpio_set_value(dvppower_io, 1);
+			camsys_trace(1, "gpios-cifpower: %d high", dvppower_io);
+			mdelay(2000);
+			gpio_set_value(dvppower_io, 0);
+			camsys_trace(1, "gpios-cifpower: %d low", dvppower_io);
+			mdelay(2000);
+		}
+	}
+	//*/
 
     //spin_lock_init(&camsys_dev->lock);
     mutex_init(&camsys_dev->extdevs.mut);
