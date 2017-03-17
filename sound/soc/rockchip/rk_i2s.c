@@ -69,6 +69,8 @@ struct rk_i2s_dev {
 #endif
 };
 
+struct rk_i2s_dev *g_rk_i2s;
+
 static inline struct rk_i2s_dev *to_info(struct snd_soc_dai *dai)
 {
 	return snd_soc_dai_get_drvdata(dai);
@@ -481,6 +483,8 @@ static int rockchip_i2s_runtime_resume(struct device *dev)
 #define i2s_runtime_resume NULL
 #endif
 
+extern int snd_start_hdmi_in_audio_route(void);
+
 #ifdef CLK_SET_LATER
 static void set_clk_later_work(struct work_struct *work)
 {
@@ -490,6 +494,7 @@ static void set_clk_later_work(struct work_struct *work)
 	clk_set_rate(i2s->clk, I2S_DEFAULT_FREQ);
 	if (!IS_ERR(i2s->mclk))
 		clk_set_rate(i2s->mclk, I2S_DEFAULT_FREQ);
+	//snd_start_hdmi_in_audio_route();
 }
 #endif
 
@@ -671,6 +676,8 @@ static int rockchip_i2s_probe(struct platform_device *pdev)
 
 	i2s->dev = &pdev->dev;
 	dev_set_drvdata(&pdev->dev, i2s);
+
+	g_rk_i2s = i2s;
 
 	pm_runtime_enable(&pdev->dev);
 	if (!pm_runtime_enabled(&pdev->dev)) {
