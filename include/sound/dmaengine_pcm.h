@@ -136,4 +136,43 @@ int snd_dmaengine_pcm_prepare_slave_config(struct snd_pcm_substream *substream,
 	struct snd_pcm_hw_params *params,
 	struct dma_slave_config *slave_config);
 
+enum dma_chan_device_id {
+	I2S_PLAYBACK,
+	I2S_CAPTURE,
+	SPDIF_PLAYBACK,
+};
+
+struct dmaengine_hdmiin_audio_pcm_runtime_data {
+	struct dma_chan *dma_chan_c;
+	struct dma_chan *dma_chan_b;
+	struct dma_chan *dma_chan_b2;
+	dma_cookie_t cookie_c;
+	dma_cookie_t cookie_b;
+	dma_cookie_t cookie_b2;
+
+	unsigned int pos_c;
+	unsigned int pos_b;
+
+	struct snd_dma_buffer dma_buffer_c;
+	struct snd_dma_buffer dma_buffer_b;
+	struct snd_dma_buffer dma_buffer_b2;
+};
+
+enum {
+	HDMIN_NORMAL_MODE = 0,
+	HDMIN_CAPTURE_MODE,
+};
+
+int snd_dmaengine_hdmiin_audio_pcm_trigger(int cmd, int mode);
+int snd_dmaengine_hdmiin_audio_pcm_open(void);
+int snd_dmaengine_hdmiin_audio_pcm_close(void);
+int snd_get_hdmiin_audio_pcm_slave_config(struct dma_slave_config *slave_config, enum dma_chan_device_id id);
+int dmaengine_hdmiin_audio_pcm_hw_params(int mode);
+
+#define I2S_PLAYBACK_DMA_CHN "dma0chan0"
+#define I2S_CAPTURE_DMA_CHN "dma0chan1"
+#define SPDIF_PLAYBACK_DMA_CHN "dma0chan2"
+#define HDMIIN_AUDIO_PERIOD_SIZE_BYTES	4096
+#define HDMIIN_AUDIO_PERIODS 2
+
 #endif
