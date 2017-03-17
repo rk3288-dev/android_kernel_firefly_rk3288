@@ -766,6 +766,7 @@ static int dwc_otg_hcd_suspend(struct usb_hcd *hcd)
 		/* pcgcctl.b.rstpdwnmodule = 1; */
 		pcgcctl.b.stoppclk = 1;	/* stop phy clk */
 		DWC_WRITE_REG32(core_if->pcgcctl, pcgcctl.d32);
+		dwc_otg_hcd->flags.b.port_suspend_connect_status = 1;
 	} else {/* no device connect */
 		if (!pldata->get_status(USB_REMOTE_WAKEUP)) {
 			if (pldata->phy_suspend)
@@ -774,6 +775,7 @@ static int dwc_otg_hcd_suspend(struct usb_hcd *hcd)
 			if (pldata->clock_enable)
 				pldata->clock_enable(pldata, 0);
 		}
+		dwc_otg_hcd->flags.b.port_suspend_connect_status = 0;
 	}
 
 	return 0;
@@ -831,7 +833,9 @@ static int dwc_otg_hcd_resume(struct usb_hcd *hcd)
 #endif
 	DWC_PRINTF("%s resume, HPRT0:0x%x\n", hcd->self.bus_name, hprt0.d32);
 
-	if (hprt0.b.prtconnsts) {
+	//if (hprt0.b.prtconnsts) {
+	if (hprt0.b.prtconnsts &&
+	    dwc_otg_hcd->flags.b.port_suspend_connect_status) {
 		/* hprt0.d32 = dwc_read_reg32(core_if->host_if->hprt0); */
 		/* DWC_PRINT("%s, HPRT0:0x%x\n",hcd->self.bus_name,hprt0.d32); */
 		hprt0.b.prtpwr = 1;
