@@ -917,6 +917,7 @@ static void iep_config_src_addr(struct IEP_MSG *iep_msg)
 	//**********************************************//
 	//***********yuv address   *********************//
 	//**********************************************//
+#if defined(CONFIG_IEP_IOMMU)
 	if (iep_service.iommu_dev == NULL) {
 		src_addr_yrgb = ((u32)iep_msg->src.mem_addr) + offset_addr_y;
 		src_addr_cbcr = ((u32)iep_msg->src.uv_addr) + offset_addr_uv;
@@ -962,6 +963,7 @@ static void iep_config_src_addr(struct IEP_MSG *iep_msg)
 		src_addr_cr_ftemp = ((u32)iep_msg->src_ftemp.v_addr) +
 			(offset_addr_v << 10);
 	}
+#endif
 
 	if ((iep_msg->dein_mode == IEP_DEINTERLACE_MODE_I4O1 ||
 	     iep_msg->dein_mode == IEP_DEINTERLACE_MODE_I4O2) &&
@@ -1150,6 +1152,7 @@ static void iep_config_dst_addr(struct IEP_MSG *iep_msg)
 	//***********yuv address   *********************//
 	//**********************************************//
 
+#if defined(CONFIG_IEP_IOMMU)
 	if (iep_service.iommu_dev == NULL) {
 		dst_addr_yrgb = ((u32)iep_msg->dst.mem_addr) + offset_addr_y;
 		dst_addr_cbcr = ((u32)iep_msg->dst.uv_addr) + offset_addr_uv;
@@ -1197,6 +1200,7 @@ static void iep_config_dst_addr(struct IEP_MSG *iep_msg)
 		dst_addr_cr_ftemp = ((u32)iep_msg->dst_ftemp.v_addr) +
 			(offset_addr_v << 10);
 	}
+#endif
 
 	IEP_REGB_DST_ADDR_YRGB(iep_msg->base, dst_addr_yrgb);
 	IEP_REGB_DST_ADDR_CBCR(iep_msg->base, dst_addr_cbcr);

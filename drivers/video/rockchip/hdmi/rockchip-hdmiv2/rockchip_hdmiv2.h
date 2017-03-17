@@ -1,6 +1,7 @@
 #ifndef __RK32_HDMI_H__
 #define __RK32_HDMI_H__
 #include <linux/regmap.h>
+#include <linux/reset.h>
 #include <linux/rockchip/iomap.h>
 #include <linux/rockchip/grf.h>
 #ifdef CONFIG_HAS_EARLYSUSPEND

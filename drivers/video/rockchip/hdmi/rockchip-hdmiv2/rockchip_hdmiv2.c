@@ -4,6 +4,8 @@
 #include <linux/platform_device.h>
 #include <linux/interrupt.h>
 #include <linux/clk.h>
+#include <linux/of_gpio.h>
+#include <linux/rockchip/cpu.h>
 #include <linux/mfd/syscon.h>
 #if defined(CONFIG_DEBUG_FS)
 #include <linux/uaccess.h>

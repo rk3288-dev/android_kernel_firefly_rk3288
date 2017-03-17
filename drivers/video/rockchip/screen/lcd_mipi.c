@@ -285,8 +285,7 @@ static int rk_mipi_screen_init_dt(struct mipi_screen *screen)
 	struct list_head *pos;
 	struct property *prop;
 	enum of_gpio_flags flags;
-	u32 value, i, debug, gpio, ret, length;
-	u32 cmds[sizeof(dcs_cmd->dcs_cmd.cmds) / sizeof(u32)];
+	u32 value, i, debug, gpio, ret, cmds[64], length;
 
 	memset(screen, 0, sizeof(*screen));
 
@@ -440,8 +439,7 @@ static int rk_mipi_screen_init_dt(struct mipi_screen *screen)
 				return ret;
 			} else {
 				dcs_cmd->dcs_cmd.cmd_len =  length / sizeof(u32);
-				for (i = 0; (i < (length / sizeof(u32))) && (i < (sizeof(dcs_cmd->dcs_cmd.cmds) / sizeof(u32))); i++) {
-					/* avoid the array out of range */
+				for (i = 0; i < (length / sizeof(u32)); i++) {
 					MIPI_SCREEN_DBG("cmd[%d]=%02x£¬", i+1, cmds[i]);
 					dcs_cmd->dcs_cmd.cmds[i] = cmds[i];
 				}
@@ -537,7 +535,7 @@ EXPORT_SYMBOL(rk_mipi_get_dsi_clk);
 static int rk_mipi_screen_init_dt(struct mipi_screen *screen)
 {
 	struct mipi_dcs_cmd_ctr_list *dcs_cmd;
-	u32 i, cmds[20];
+	u32 i, cmds[64];
 	int length;
 	int err;
 	int node;
