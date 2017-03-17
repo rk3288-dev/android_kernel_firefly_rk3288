@@ -92,6 +92,10 @@ choice
 		bool "AP6210"
 		depends on RKWIFI
 
+	config AP6212
+		bool "AP6212"
+		depends on RKWIFI
+
 	config AP6234
 		bool "AP6234"
 		depends on RKWIFI

@@ -95,6 +95,8 @@ static const char bt_name[] =
     #else
         "ap6210_24M"
     #endif
+#elif defined(CONFIG_AP6212)
+        "ap6212"
 #elif defined(CONFIG_AP6330)
 		"ap6330"
 #elif defined(CONFIG_AP6476)
@@ -267,7 +269,7 @@ static int rfkill_rk_set_power(void *data, bool blocked)
     struct rfkill_rk_gpio *poweron = &rfkill->pdata->poweron_gpio;
     struct rfkill_rk_gpio *reset = &rfkill->pdata->reset_gpio;
 	struct rfkill_rk_gpio *wake_host = &rfkill->pdata->wake_host_irq.gpio;
-#if defined(CONFIG_AP6210) || defined(CONFIG_AP6335)
+#if defined(CONFIG_AP6210) || defined(CONFIG_AP6335) || defined(CONFIG_AP6212)
     struct rfkill_rk_gpio* rts = &rfkill->pdata->rts_gpio;
     struct pinctrl *pinctrl = rfkill->pdata->pinctrl;
 #endif
@@ -312,7 +314,7 @@ static int rfkill_rk_set_power(void *data, bool blocked)
             msleep(20);
 			gpio_direction_output(reset->io, reset->enable);
         }
-#if defined(CONFIG_AP6210) || defined(CONFIG_AP6335)
+#if defined(CONFIG_AP6210) || defined(CONFIG_AP6335) || defined(CONFIG_AP6212)
         if (pinctrl != NULL && gpio_is_valid(rts->io))
         {
             pinctrl_select_state(pinctrl, rts->gpio_state);
