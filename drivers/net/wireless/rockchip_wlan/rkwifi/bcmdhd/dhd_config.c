@@ -497,8 +497,10 @@ dhd_conf_set_fw_name_by_chip(dhd_pub_t *dhd, char *fw_path, char *nv_path)
 				strcpy(&fw_path[i+1], bcm4339a0_ag_fw_name[fw_type]);
 			break;
 		case BCM4345_CHIP_ID:
+		case BCM43454_CHIP_ID:
 			if (chiprev == BCM43455C0_CHIP_REV)
 				strcpy(&fw_path[i+1], bcm43455c0_ag_fw_name[fw_type]);
+			strcpy(&nv_path[j+1], "nvram_AP6255.txt");
 			break;
 		case BCM4339_CHIP_ID:
 			if (chiprev == BCM4339A0_CHIP_REV)
