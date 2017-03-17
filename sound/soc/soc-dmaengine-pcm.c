@@ -27,6 +27,8 @@
 #include <sound/soc.h>
 
 #include <sound/dmaengine_pcm.h>
+#include <linux/delay.h>
+
 
 struct dmaengine_pcm_runtime_data {
 	struct dma_chan *dma_chan;
@@ -407,5 +409,140 @@ int snd_dmaengine_pcm_close_release_chan(struct snd_pcm_substream *substream)
 	return snd_dmaengine_pcm_close(substream);
 }
 EXPORT_SYMBOL_GPL(snd_dmaengine_pcm_close_release_chan);
+
+/* hdmi in audio */
+extern struct dmaengine_hdmiin_audio_pcm_runtime_data *hdmiin_audio_prtd;
+
+static void dmaengine_hdmiin_audio_pcm_dma_complete_c(void *arg)
+{
+	struct dmaengine_hdmiin_audio_pcm_runtime_data *prtd = hdmiin_audio_prtd;
+	prtd->pos_c += 4096;
+	if (prtd->pos_c >= 4096*3)
+		prtd->pos_c = 0;
+}
+
+static void dmaengine_hdmiin_audio_pcm_dma_complete_b(void *arg)
+{
+	struct dmaengine_hdmiin_audio_pcm_runtime_data *prtd = hdmiin_audio_prtd;
+
+	prtd->pos_b += 4096;
+	if (prtd->pos_b >= 4096*3)
+		prtd->pos_b = 0;
+}
+
+static int dmaengine_hdmiin_audio_pcm_prepare_and_submit(int mode)
+{
+	struct dmaengine_hdmiin_audio_pcm_runtime_data *prtd = hdmiin_audio_prtd;
+	struct dma_chan *chan_c = prtd->dma_chan_c;
+	struct dma_chan *chan_b = prtd->dma_chan_b;
+	struct dma_chan *chan_b2 = prtd->dma_chan_b2;
+	struct dma_async_tx_descriptor *desc_capture;
+	struct dma_async_tx_descriptor *desc_playback;
+	struct dma_async_tx_descriptor *desc_playback2;
+	enum dma_transfer_direction direction;
+	unsigned long flags = DMA_CTRL_ACK;
+
+	flags |= DMA_PREP_INTERRUPT;
+	prtd->pos_b = 0;
+	prtd->pos_c = 0;
+
+	if (HDMIN_NORMAL_MODE == mode) {
+		/* init capture */
+		direction = DMA_DEV_TO_MEM;
+		pr_info("dma_addr capture: %x\n", prtd->dma_buffer_c.addr);
+		desc_capture = dmaengine_prep_dma_cyclic(chan_c,
+			prtd->dma_buffer_c.addr,
+			HDMIIN_AUDIO_PERIOD_SIZE_BYTES*HDMIIN_AUDIO_PERIODS,
+			HDMIIN_AUDIO_PERIOD_SIZE_BYTES, direction, flags);
+
+		if (!desc_capture)
+			return -ENOMEM;
+
+		desc_capture->callback = dmaengine_hdmiin_audio_pcm_dma_complete_c;
+		desc_capture->callback_param = NULL;
+		prtd->cookie_c = dmaengine_submit(desc_capture);
+	}
+
+	/* init playback */
+	direction = DMA_MEM_TO_DEV;
+	pr_info("dma_addr playback: %x\n", prtd->dma_buffer_b.addr);
+	desc_playback = dmaengine_prep_dma_cyclic(chan_b,
+		prtd->dma_buffer_b.addr,
+		HDMIIN_AUDIO_PERIOD_SIZE_BYTES*HDMIIN_AUDIO_PERIODS,
+		HDMIIN_AUDIO_PERIOD_SIZE_BYTES, direction, flags);
+
+	if (!desc_playback)
+		return -ENOMEM;
+
+	desc_playback->callback = dmaengine_hdmiin_audio_pcm_dma_complete_b;
+	desc_playback->callback_param = NULL;
+	prtd->cookie_b = dmaengine_submit(desc_playback);
+	pr_info("%s: %d done\n", __func__, __LINE__);
+
+	/* init playback 2*/
+	direction = DMA_MEM_TO_DEV;
+
+	pr_info("dma_addr playback: %x\n", prtd->dma_buffer_b2.addr);
+	desc_playback2 = dmaengine_prep_dma_cyclic(chan_b2,
+		prtd->dma_buffer_b2.addr,
+		HDMIIN_AUDIO_PERIOD_SIZE_BYTES*HDMIIN_AUDIO_PERIODS,
+		HDMIIN_AUDIO_PERIOD_SIZE_BYTES, direction, flags);
+
+	if (!desc_playback2)
+		return -ENOMEM;
+
+	desc_playback2->callback = dmaengine_hdmiin_audio_pcm_dma_complete_b;
+	desc_playback2->callback_param = NULL;
+	prtd->cookie_b2 = dmaengine_submit(desc_playback2);
+	pr_info("%s: %d done\n", __func__, __LINE__);
+
+	return 0;
+}
+
+int snd_dmaengine_hdmiin_audio_pcm_trigger(int cmd, int mode)
+{
+	struct dmaengine_hdmiin_audio_pcm_runtime_data *prtd;
+	int ret;
+
+	prtd = hdmiin_audio_prtd;
+
+	switch (cmd) {
+	case SNDRV_PCM_TRIGGER_START:
+		ret = dmaengine_hdmiin_audio_pcm_prepare_and_submit(mode);
+		if (ret)
+			return ret;
+
+		if (HDMIN_NORMAL_MODE == mode)
+			dma_async_issue_pending(prtd->dma_chan_c);
+		dma_async_issue_pending(prtd->dma_chan_b);
+		dma_async_issue_pending(prtd->dma_chan_b2);
+		break;
+	case SNDRV_PCM_TRIGGER_RESUME:
+	case SNDRV_PCM_TRIGGER_PAUSE_RELEASE:
+		if (HDMIN_NORMAL_MODE == mode)
+			dmaengine_resume(prtd->dma_chan_c);
+		dmaengine_resume(prtd->dma_chan_b);
+		dmaengine_resume(prtd->dma_chan_b2);
+		break;
+	case SNDRV_PCM_TRIGGER_SUSPEND:
+	case SNDRV_PCM_TRIGGER_PAUSE_PUSH:
+		dmaengine_pause(prtd->dma_chan_b2);
+		dmaengine_pause(prtd->dma_chan_b);
+		if (HDMIN_NORMAL_MODE == mode)
+			dmaengine_pause(prtd->dma_chan_c);
+		break;
+	case SNDRV_PCM_TRIGGER_STOP:
+		dmaengine_terminate_all(prtd->dma_chan_b2);
+		dmaengine_terminate_all(prtd->dma_chan_b);
+		if (HDMIN_NORMAL_MODE == mode)
+			dmaengine_terminate_all(prtd->dma_chan_c);
+		break;
+	default:
+		return -EINVAL;
+	}
+
+	return 0;
+}
+EXPORT_SYMBOL_GPL(snd_dmaengine_hdmiin_audio_pcm_trigger);
 
 MODULE_LICENSE("GPL");
