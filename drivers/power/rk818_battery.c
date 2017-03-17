@@ -135,6 +135,7 @@ module_param_named(dbg_level, dbg_enable, int, 0644);
 #define	TREND_STAT_UP		1
 #define	TREND_CAP_DIFF		5
 
+#define	POWER_ON_SEC_BASE	1
 #define MINUTE			60
 
 #define SLP_CURR_MAX		40
@@ -164,7 +165,7 @@ module_param_named(dbg_level, dbg_enable, int, 0644);
 /*
  * the following table value depends on datasheet
  */
-int CHRG_V_LMT[] = {4050, 4100, 4150, 4200, 4300, 4350};
+int CHRG_V_LMT[] = {4050, 4100, 4150, 4200, 4250, 4300, 4350};
 
 int CHRG_I_CUR[] = {1000, 1200, 1400, 1600, 1800, 2000,
 		   2250, 2400, 2600, 2800, 3000};
@@ -203,6 +204,7 @@ struct rk81x_battery {
 	int				ac_online;
 	int				usb_online;
 	int				otg_online;
+	int				dc_online;
 	int				psy_status;
 	int				current_avg;
 	int				current_offset;
@@ -335,7 +337,7 @@ struct rk81x_battery {
 	struct timeval			suspend_rtc_base;
 };
 
-u32 support_usb_adp, support_dc_adp;
+u32 support_usb_adp, support_dc_adp, power_dc2otg;
 
 #define to_device_info(x) container_of((x), \
 				struct rk81x_battery, bat)
@@ -369,7 +371,7 @@ static u64 get_runtime_sec(void)
 static inline unsigned long  BASE_TO_SEC(unsigned long x)
 {
 	if (x)
-		return get_runtime_sec() - x;
+		return (get_runtime_sec() > x) ? (get_runtime_sec() - x) : 0;
 	else
 		return 0;
 }
@@ -594,8 +596,9 @@ static void rk81x_bat_capacity_init(struct rk81x_battery *di, u32 capacity)
 
 	} while (buf == 0);
 
-	dev_dbg(di->dev, "update capacity :%d--remain_cap:%d\n",
-		 capacity, di->remain_capacity);
+	if (di->chrg_status != CHARGE_FINISH || di->dod0_status == 1)
+		dev_dbg(di->dev, "update capacity :%d--remain_cap:%d\n",
+			capacity, di->remain_capacity);
 }
 
 #if RK818_SYS_DBG
@@ -1226,6 +1229,7 @@ static void rk81x_bat_set_power_supply_state(struct rk81x_battery *di,
 {
 	di->usb_online = OFFLINE;
 	di->ac_online = OFFLINE;
+	di->dc_online = OFFLINE;
 
 	switch (charger_type) {
 	case NO_CHARGER:
@@ -1236,6 +1240,7 @@ static void rk81x_bat_set_power_supply_state(struct rk81x_battery *di,
 		di->psy_status = POWER_SUPPLY_STATUS_CHARGING;
 		break;
 	case DC_CHARGER:/*treat dc as ac*/
+		di->dc_online = ONLINE;
 	case AC_CHARGER:
 		di->ac_online = ONLINE;
 		di->psy_status = POWER_SUPPLY_STATUS_CHARGING;
@@ -1256,7 +1261,7 @@ static void rk81x_bat_set_power_supply_state(struct rk81x_battery *di,
 static void rk81x_bat_lowpwr_check(struct rk81x_battery *di)
 {
 	static u64 time;
-	int pwr_off_thresd = di->pdata->power_off_thresd - 50;
+	int pwr_off_thresd = di->pdata->power_off_thresd;
 
 	if (di->current_avg < 0 &&  di->voltage < pwr_off_thresd) {
 		if (!time)
@@ -1265,6 +1270,11 @@ static void rk81x_bat_lowpwr_check(struct rk81x_battery *di)
 		if (BASE_TO_SEC(time) > (MINUTE)) {
 			rk81x_bat_set_power_supply_state(di, NO_CHARGER);
 			dev_info(di->dev, "low power....\n");
+		}
+
+		if (di->voltage <= pwr_off_thresd - 50) {
+			di->dsoc--;
+			rk81x_bat_set_power_supply_state(di, NO_CHARGER);
 		}
 	} else {
 		time = 0;
@@ -1754,6 +1764,24 @@ static void rk81x_bat_set_charger_param(struct rk81x_battery *di,
 	}
 }
 
+static void rk81x_bat_set_otg_state(struct rk81x_battery *di, int state)
+{
+	switch (state) {
+	case USB_OTG_POWER_ON:
+		rk81x_bat_set_bit(di, NT_STS_MSK_REG2, PLUG_IN_INT);
+		rk81x_bat_set_bit(di, NT_STS_MSK_REG2, PLUG_OUT_INT);
+		rk818_set_bits(di->rk818, DCDC_EN_REG, OTG_EN_MASK, OTG_EN);
+		break;
+	case USB_OTG_POWER_OFF:
+		rk81x_bat_clr_bit(di, NT_STS_MSK_REG2, PLUG_IN_INT);
+		rk81x_bat_clr_bit(di, NT_STS_MSK_REG2, PLUG_OUT_INT);
+		rk818_set_bits(di->rk818, DCDC_EN_REG, OTG_EN_MASK, OTG_DIS);
+		break;
+	default:
+		break;
+	}
+}
+
 static enum charger_type rk81x_bat_get_dc_state(struct rk81x_battery *di)
 {
 	int ret;
@@ -1796,12 +1824,20 @@ static void rk81x_battery_dc_delay_work(struct work_struct *work)
 
 	charger_type = rk81x_bat_get_dc_state(di);
 
-	if (charger_type == DC_CHARGER)
+	if (charger_type == DC_CHARGER) {
 		rk81x_bat_set_charger_param(di, DC_CHARGER);
-	else/*NO_CHARGER: maybe usb charger still plugin*/
-		queue_delayed_work(di->wq,
-				   &di->ac_usb_check_work,
-				   msecs_to_jiffies(10));
+		if (power_dc2otg && di->otg_online)
+			rk81x_bat_set_otg_state(di, USB_OTG_POWER_OFF);
+	} else {
+		if (di->otg_online) {
+			rk81x_bat_set_otg_state(di, USB_OTG_POWER_ON);
+			rk81x_bat_set_charger_param(di, NO_CHARGER);
+		} else {
+			queue_delayed_work(di->wq,
+					   &di->ac_usb_check_work,
+					   msecs_to_jiffies(10));
+		}
+	}
 }
 
 static void rk81x_battery_acusb_delay_work(struct work_struct *work)
@@ -2021,8 +2057,10 @@ static void rk81x_bat_not_first_pwron(struct rk81x_battery *di)
 	 * so here we should skip init work
 	 */
 #if defined(CONFIG_ARCH_ROCKCHIP)
-	if (di->loader_charged)
+	if (di->loader_charged) {
+		dev_info(di->dev, "loader charged\n");
 		goto out;
+	}
 #endif
 	calib_vol = rk81x_bat_get_calib_vol(di);
 	if (calib_vol > 0) {
@@ -2795,17 +2833,19 @@ static void rk81x_bat_dbg_dmp_info(struct rk81x_battery *di)
 	u8 usb_ctrl_reg, chrg_ctrl_reg1, thremal_reg;
 	u8 chrg_ctrl_reg2, chrg_ctrl_reg3, rtc_val, misc_reg;
 
-	rk81x_bat_read(di, MISC_MARK_REG, &misc_reg, 1);
-	rk81x_bat_read(di, GGCON, &ggcon_reg, 1);
-	rk81x_bat_read(di, GGSTS, &ggsts_reg, 1);
-	rk81x_bat_read(di, SUP_STS_REG, &sup_tst_reg, 1);
-	rk81x_bat_read(di, VB_MOD_REG, &vb_mod_reg, 1);
-	rk81x_bat_read(di, USB_CTRL_REG, &usb_ctrl_reg, 1);
-	rk81x_bat_read(di, CHRG_CTRL_REG1, &chrg_ctrl_reg1, 1);
-	rk81x_bat_read(di, CHRG_CTRL_REG2, &chrg_ctrl_reg2, 1);
-	rk81x_bat_read(di, CHRG_CTRL_REG3, &chrg_ctrl_reg3, 1);
-	rk81x_bat_read(di, 0x00, &rtc_val, 1);
-	rk81x_bat_read(di, THERMAL_REG, &thremal_reg, 1);
+	if (dbg_enable) {
+		rk81x_bat_read(di, MISC_MARK_REG, &misc_reg, 1);
+		rk81x_bat_read(di, GGCON, &ggcon_reg, 1);
+		rk81x_bat_read(di, GGSTS, &ggsts_reg, 1);
+		rk81x_bat_read(di, SUP_STS_REG, &sup_tst_reg, 1);
+		rk81x_bat_read(di, VB_MOD_REG, &vb_mod_reg, 1);
+		rk81x_bat_read(di, USB_CTRL_REG, &usb_ctrl_reg, 1);
+		rk81x_bat_read(di, CHRG_CTRL_REG1, &chrg_ctrl_reg1, 1);
+		rk81x_bat_read(di, CHRG_CTRL_REG2, &chrg_ctrl_reg2, 1);
+		rk81x_bat_read(di, CHRG_CTRL_REG3, &chrg_ctrl_reg3, 1);
+		rk81x_bat_read(di, 0x00, &rtc_val, 1);
+		rk81x_bat_read(di, THERMAL_REG, &thremal_reg, 1);
+	}
 
 	DBG("\n------------- dump_debug_regs -----------------\n"
 	    "GGCON = 0x%2x, GGSTS = 0x%2x, RTC	= 0x%2x\n"
@@ -2826,7 +2866,6 @@ static void rk81x_bat_dbg_dmp_info(struct rk81x_battery *di)
 	    "check_ocv = %d, check_soc = %d, bat_res = %d\n"
 	    "display_soc = %d, cpapacity_soc = %d\n"
 	    "AC-ONLINE = %d, USB-ONLINE = %d, charging_status = %d\n"
-	    "finish_real_soc = %d, finish_temp_soc = %d\n"
 	    "i_offset=0x%x, cal_offset=0x%x, adjust_cap=%d\n"
 	    "plug_in = %d, plug_out = %d, finish_sig = %d, finish_chrg=%lu\n"
 	    "sec: chrg=%lu, dischrg=%lu, term_chrg=%lu, emu_chrg=%lu\n"
@@ -2838,7 +2877,6 @@ static void rk81x_bat_dbg_dmp_info(struct rk81x_battery *di)
 	    di->est_ocv_vol, di->est_ocv_soc, di->bat_res,
 	    di->dsoc, di->rsoc,
 	    di->ac_online, di->usb_online, di->psy_status,
-	    di->debug_finish_real_soc, di->debug_finish_temp_soc,
 	    rk81x_bat_get_ioffset(di), rk81x_bat_get_cal_offset(di),
 	    di->adjust_cap, di->plug_in_min, di->plug_out_min,
 	    di->finish_sig_min, BASE_TO_SEC(di->chrg_finish_base),
@@ -2850,7 +2888,6 @@ static void rk81x_bat_dbg_dmp_info(struct rk81x_battery *di)
 	    BASE_TO_SEC(di->power_on_base),
 	    di->current_mode, di->chrg_save_sec, di->dischrg_save_sec
 	   );
-	DBG();
 }
 
 static void rk81x_bat_update_fcc(struct rk81x_battery *di)
@@ -2945,6 +2982,11 @@ static void rk81x_bat_finish_chrg(struct rk81x_battery *di)
 	}
 }
 
+static u8 rk81x_bat_get_valid_soc(unsigned long soc)
+{
+	return (soc <= 100) ? soc : 0;
+}
+
 static void rk81x_bat_normal_chrg(struct rk81x_battery *di)
 {
 	int now_current;
@@ -2973,7 +3015,7 @@ static void rk81x_bat_normal_chrg(struct rk81x_battery *di)
 	} else if (di->rsoc < di->dsoc + 1) {
 		DBG("<%s>. rsoc < dsoc + 1\n", __func__);
 		unit_sec = soc_time * 3 / 2;
-		plus_soc = chrg_normal_sec / unit_sec;
+		plus_soc = rk81x_bat_get_valid_soc(chrg_normal_sec / unit_sec);
 		if  (chrg_normal_sec > unit_sec) {
 			di->dsoc += plus_soc;
 			di->chrg_normal_base = get_runtime_sec();
@@ -2983,7 +3025,7 @@ static void rk81x_bat_normal_chrg(struct rk81x_battery *di)
 	} else if (di->rsoc > di->dsoc + 1) {
 		DBG("<%s>. rsoc > dsoc + 1\n", __func__);
 		unit_sec = soc_time * 3 / 4;
-		plus_soc = chrg_normal_sec / unit_sec;
+		plus_soc = rk81x_bat_get_valid_soc(chrg_normal_sec / unit_sec);
 		if  (chrg_normal_sec > unit_sec) {
 			di->dsoc += plus_soc;
 			di->chrg_normal_base = get_runtime_sec();
@@ -3698,20 +3740,19 @@ static void rk81x_battery_otg_delay_work(struct work_struct *work)
 	 */
 	switch (event) {
 	case USB_OTG_POWER_ON:
-		dev_info(di->dev, "charge disable, otg enable\n");
 		di->otg_online = ONLINE;
-		/*rk81x_bat_set_charger_param(di, NO_CHARGER);*/
-		rk81x_bat_set_bit(di, NT_STS_MSK_REG2, PLUG_IN_INT);
-		rk81x_bat_set_bit(di, NT_STS_MSK_REG2, PLUG_OUT_INT);
-		rk818_set_bits(di->rk818, DCDC_EN_REG, OTG_EN_MASK, OTG_EN);
+		if (power_dc2otg && di->dc_online) {
+			dev_info(di->dev, "otg power from dc adapter\n");
+			return;
+		}
+		dev_info(di->dev, "charge disable, otg enable\n");
+		rk81x_bat_set_otg_state(di, USB_OTG_POWER_ON);
 		break;
 
 	case USB_OTG_POWER_OFF:
 		dev_info(di->dev, "charge enable, otg disable\n");
 		di->otg_online = OFFLINE;
-		rk81x_bat_clr_bit(di, NT_STS_MSK_REG2, PLUG_IN_INT);
-		rk81x_bat_clr_bit(di, NT_STS_MSK_REG2, PLUG_OUT_INT);
-		rk818_set_bits(di->rk818, DCDC_EN_REG, OTG_EN_MASK, OTG_DIS);
+		rk81x_bat_set_otg_state(di, USB_OTG_POWER_OFF);
 		/*maybe dc still plugin*/
 		queue_delayed_work(di->wq, &di->dc_det_check_work,
 				   msecs_to_jiffies(10));
@@ -3897,7 +3938,7 @@ static void rk81x_bat_info_init(struct rk81x_battery *di,
 				struct rk818 *chip)
 {
 	u8 val;
-	unsigned long time_base = get_runtime_sec();
+	unsigned long time_base = POWER_ON_SEC_BASE;
 
 	rk81x_bat_read(di, RK818_VB_MON_REG, &val, 1);
 	if (val & PLUG_IN_STS)
@@ -3957,7 +3998,7 @@ err:
 static int rk81x_bat_get_suspend_sec(struct rk81x_battery *di)
 {
 	int err;
-	int delta_sec;
+	int delta_sec = 0;
 	struct rtc_time tm;
 	struct timespec tv = {
 		.tv_nsec = NSEC_PER_SEC >> 1,
@@ -3968,17 +4009,19 @@ static int rk81x_bat_get_suspend_sec(struct rk81x_battery *di)
 	if (err) {
 		dev_err(rtc->dev.parent,
 			"hctosys: unable to read the hardware clock\n");
+		goto out;
 	}
 	err = rtc_valid_tm(&tm);
 	if (err) {
 		dev_err(rtc->dev.parent,
 			"hctosys: invalid date/time\n");
+		goto out;
 	}
 
 	rtc_tm_to_time(&tm, &tv.tv_sec);
 	delta_sec = tv.tv_sec - di->suspend_rtc_base.tv_sec;
-
-	return delta_sec;
+out:
+	return (delta_sec > 0) ? delta_sec : 0;
 }
 
 #ifdef CONFIG_OF
@@ -4106,6 +4149,7 @@ static int rk81x_bat_parse_dt(struct rk81x_battery *di)
 	/*************  charger support adp types **********************/
 	ret = of_property_read_u32(np, "support_usb_adp", &support_usb_adp);
 	ret = of_property_read_u32(np, "support_dc_adp", &support_dc_adp);
+	ret = of_property_read_u32(np, "power_dc2otg", &power_dc2otg);
 
 	if (!support_usb_adp && !support_dc_adp) {
 		dev_err(dev, "miss both: usb_adp and dc_adp,default:usb_adp!\n");
