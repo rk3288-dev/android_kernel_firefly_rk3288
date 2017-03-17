@@ -2,6 +2,7 @@
 #define __RK32_HDMI_H__
 #include <linux/regmap.h>
 #include <linux/gpio.h>
+#include <linux/reset.h>
 #ifdef CONFIG_HAS_EARLYSUSPEND
 #include <linux/earlysuspend.h>
 #endif

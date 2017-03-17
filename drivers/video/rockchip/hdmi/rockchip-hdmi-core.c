@@ -235,11 +235,83 @@ out:
 	rc = hdmi_ouputmode_select(hdmi, rc);
 }
 
+static int hdmi_wq_edidread(struct hdmi *hdmi)
+{
+	struct hdmi_edid *pedid;
+
+	int rc = HDMI_ERROR_SUCESS, extendblock = 0, i, trytimes;
+	int flag = 1;
+
+	if (hdmi == NULL)
+		return;
+
+	DBG("%s\n", __func__);
+
+	pedid = &(hdmi->edid);
+	fb_destroy_modelist(&pedid->modelist);
+	memset(pedid, 0, sizeof(struct hdmi_edid));
+	INIT_LIST_HEAD(&pedid->modelist);
+   
+	pedid->raw[0] = kmalloc(HDMI_EDID_BLOCK_SIZE, GFP_KERNEL);
+	if (pedid->raw[0] == NULL) {
+		dev_err(hdmi->dev,
+			"[%s] can not allocate memory for edid buff.\n",
+			__func__);
+		rc = HDMI_ERROR_FALSE;
+		flag = 0;
+		goto out;
+	}
+
+	if (hdmi->ops->getedid == NULL) {
+		rc = HDMI_ERROR_FALSE;
+		flag = 0;
+		goto out;
+	}
+	
+	/* Read base block edid.*/
+	for (trytimes = 0; trytimes < 3; trytimes++) {
+		if (trytimes)
+			msleep(50);
+		printk("--11\n");
+		memset(pedid->raw[0], 0 , HDMI_EDID_BLOCK_SIZE);
+		rc = hdmi->ops->getedid(hdmi, 0, pedid->raw[0]);
+		if (rc) {
+			dev_err(hdmi->dev,
+				"[HDMI] read edid base block error\n");
+			continue;
+		}
+		rc = hdmi_edid_parse_head(pedid->raw[0], &extendblock, pedid);
+		if (rc) {
+			dev_err(hdmi->dev,
+				"[HDMI] parse edid base block error\n");
+			continue;
+		}
+		if (!rc)
+			break;
+	}
+	if (rc)
+	{
+	    flag = 0;
+	}	
+out:
+    if(flag == 0)
+    {
+        hdmi->edidread = 0;
+        printk("hdmi->edidread:%d",hdmi->edidread);
+    }
+    else
+    {
+        hdmi->edidread = 1;
+        printk("hdmi->edidread:%d",hdmi->edidread);
+    }
+}
+
 static void hdmi_wq_insert(struct hdmi *hdmi)
 {
 	DBG("%s\n", __func__);
 	if (hdmi->ops->insert)
 		hdmi->ops->insert(hdmi);
+	hdmi_wq_edidread(hdmi);
 	hdmi_wq_parse_edid(hdmi);
 	if (hdmi->property->feature & SUPPORT_CEC)
 		rockchip_hdmi_cec_set_pa(hdmi->edid.cecaddress);
@@ -296,6 +368,7 @@ static void hdmi_wq_remove(struct hdmi *hdmi)
 	hdmi->uboot = 0;
 	hdmi->hotplug = HDMI_HPD_REMOVED;
 	hdmi_send_uevent(hdmi, KOBJ_REMOVE);
+	hdmi->edidread = 0;
 }
 
 static void hdmi_work_queue(struct work_struct *work)
@@ -520,6 +593,7 @@ struct hdmi *rockchip_hdmi_register(struct hdmi_property *property,
 	hdmi->audio.word_length = HDMI_AUDIO_DEFAULT_WORDLENGTH;
 	hdmi->xscale = 100;
 	hdmi->yscale = 100;
+	hdmi->edidread = 0;
 	hdmi_init_modelist(hdmi);
 
 	if (hdmi->property->videosrc == DISPLAY_SOURCE_LCDC0)

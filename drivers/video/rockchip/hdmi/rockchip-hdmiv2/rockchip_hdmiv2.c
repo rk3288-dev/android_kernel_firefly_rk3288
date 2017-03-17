@@ -5,6 +5,7 @@
 #include <linux/interrupt.h>
 #include <linux/clk.h>
 #include <linux/of_gpio.h>
+#include <linux/rockchip/cpu.h>
 #include <linux/rockchip/grf.h>
 #include <linux/rockchip/iomap.h>
 #include <linux/mfd/syscon.h>
