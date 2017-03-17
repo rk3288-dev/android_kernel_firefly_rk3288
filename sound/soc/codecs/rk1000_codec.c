@@ -45,7 +45,7 @@
 
 #define HP_OUT 0
 #define HP_IN  1
-#define USE_MIC_IN
+//#define USE_MIC_IN
 #define USE_LPF
 
 #define FREQ441KHZ    (0x11 << 1)
@@ -53,7 +53,7 @@
 /* 0x0000 ~ 0xF42 */
 #define VOLUME_OUTPUT 0xF42
 /* 0x0 ~ 0x3f(bit0-bit5)	 max=0x0(+6DB) min=0x3f(-60DB)	 Analog Gain */
-#define VOLUME_CODEC_PA 0x0
+#define VOLUME_CODEC_PA 0xf
 
 /* rk1000 input volume,rk610 can not adjust the recording volume */
 #define VOLUME_INPUT 0x07
@@ -688,7 +688,7 @@ void rk1000_codec_reg_set(void)
 			   ASC_INT_MUTE_L | ASC_INT_MUTE_R |
 			   ASC_SIDETONE_L_OFF | ASC_SIDETONE_R_OFF);
 	/*2set default SR and clk*/
-	rk1000_codec_write(codec, ACCELCODEC_R0A, FREQ441KHZ | ASC_NORMAL_MODE |
+	rk1000_codec_write(codec, ACCELCODEC_R0A, ASC_NORMAL_MODE |
 			   (0x10 << 1) | ASC_CLKNODIV | ASC_CLK_ENABLE);
 	g_r0_a_reg = ASC_NORMAL_MODE | (0x10 << 1) |
 		     ASC_CLKNODIV | ASC_CLK_DISABLE;
@@ -748,6 +748,23 @@ static int rk1000_codec_resume(struct snd_soc_codec *codec)
 	spk_ctrl_fun(GPIO_HIGH);
 	return 0;
 }
+
+void rk1000_audio_cfg(int loopback)
+{
+	struct snd_soc_codec *codec = rk1000_codec_codec;
+
+	rk1000_codec_reg_set();
+	if(loopback)
+	{
+	
+		rk1000_codec_write(codec,ACCELCODEC_R13, 0xff);
+		rk1000_codec_write(codec,ACCELCODEC_R14, 0xff);
+		rk1000_codec_write(codec,ACCELCODEC_R17, 0xb0);
+		rk1000_codec_write(codec,ACCELCODEC_R18, 0xb0);
+		pr_info("loopback\n");
+	}
+}
+EXPORT_SYMBOL(rk1000_audio_cfg);
 
 static int rk1000_codec_probe(struct snd_soc_codec *codec)
 {

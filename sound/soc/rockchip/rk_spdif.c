@@ -149,6 +149,7 @@ struct rockchip_spdif_info {
 	u32 cfgr;
 	u32 dmac;
 };
+struct rockchip_spdif_info *g_rk_spdif;
 
 static inline struct rockchip_spdif_info *to_info(struct snd_soc_dai *cpu_dai)
 {
@@ -471,6 +472,7 @@ static int spdif_probe(struct platform_device *pdev)
 		goto err_;
 	}
 
+	g_rk_spdif = spdif;
 	dev_info(&pdev->dev, "spdif ready.\n");
 
 	return 0;
