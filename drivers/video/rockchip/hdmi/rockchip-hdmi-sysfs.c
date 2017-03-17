@@ -28,6 +28,24 @@ static int hdmi_set_enable(struct rk_display_device *device, int enable)
 	return 0;
 }
 
+static int hdmi_get_edidread(struct rk_display_device *device)
+{
+	struct hdmi *hdmi = device->priv_data;
+	int edidread;
+
+	edidread = hdmi->edidread;
+	return edidread;
+}
+
+static int hdmi_set_edidread(struct rk_display_device *device, int edid)
+{
+	struct hdmi *hdmi = device->priv_data;
+   
+    hdmi->edidread = edid;
+    
+	return 0;
+}
+
 static int hdmi_get_status(struct rk_display_device *device)
 {
 	struct hdmi *hdmi = device->priv_data;
@@ -609,6 +627,8 @@ static struct rk_display_ops hdmi_display_ops = {
 	.setscale = hdmi_set_scale,
 	.getscale = hdmi_get_scale,
 	.getdebug = hdmi_get_debug,
+	.getedidread = hdmi_get_edidread,
+	.setedidread = hdmi_set_edidread,
 };
 
 static int hdmi_display_probe(struct rk_display_device *device, void *devdata)
