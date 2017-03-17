@@ -66,6 +66,8 @@ struct rk_display_ops {
 				char *audioinfo, int len);
 	int (*getmonspecs)(struct rk_display_device *,
 			   struct fb_monspecs *monspecs);
+	int (*setedidread)(struct rk_display_device *, int edid);
+	int (*getedidread)(struct rk_display_device *);
 };
 
 struct rk_display_device {
