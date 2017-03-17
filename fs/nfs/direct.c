@@ -62,6 +62,7 @@
 #define NFSDBG_FACILITY		NFSDBG_VFS
 
 static struct kmem_cache *nfs_direct_cachep;
+extern void inode_dio_done(struct inode *inode);
 
 /*
  * This represents a set of asynchronous requests that we're waiting on
