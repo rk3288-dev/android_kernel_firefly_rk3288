@@ -2695,6 +2695,11 @@ static int check_modinfo(struct module *mod, struct load_info *info, int flags)
 	const char *modmagic = get_modinfo(info, "vermagic");
 	int err;
 
+	// Force load mali driver
+	if (!strncmp("mali_kbase", mod->name, 10)) {
+		return 0;
+	}
+
 	if (flags & MODULE_INIT_IGNORE_VERMAGIC)
 		modmagic = NULL;
 
