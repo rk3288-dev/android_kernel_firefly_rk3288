@@ -1,7 +1,7 @@
 #
 # Makefile for the Linux Wireless network device drivers.
 #
-obj-y += rockchip_wlan/wifi_sys/rkwifi_sys_iface.o
+obj-y += rockchip_wlan/wifi_sys/
 obj-$(CONFIG_RTL8192CU)        += rockchip_wlan/rtl8192cu/
 obj-$(CONFIG_RTL8192DU)        += rockchip_wlan/rtl8192du/
 obj-$(CONFIG_RTL8188EU)	       += rockchip_wlan/rtl8188eu/
