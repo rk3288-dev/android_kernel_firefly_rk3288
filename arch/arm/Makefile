@@ -336,19 +336,3 @@ define archhelp
   echo  '                  (distribution) /sbin/$(INSTALLKERNEL) or'
   echo  '                  install to $$(INSTALL_PATH) and run lilo'
 endef
-
-kernel.img: zImage
-	$(Q)$(srctree)/mkkrnlimg $(objtree)/arch/arm/boot/zImage $(objtree)/kernel.img >/dev/null
-	@echo '  Image:  kernel.img is ready'
-
-%_kernel.img: %.dtb zImage
-	$(Q)cat $(objtree)/arch/arm/boot/zImage $(objtree)/arch/arm/boot/dts/$*.dtb > $(objtree)/zImage-dtb && \
-	$(srctree)/mkkrnlimg $(objtree)/zImage-dtb $(objtree)/kernel.img >/dev/null && \
-	rm -f $(objtree)/zImage-dtb
-	@echo '  Image:  kernel.img (with $*.dtb) is ready'
-
-LOGO := $(notdir $(wildcard $(srctree)/logo.bmp))
-LOGO_KERNEL := $(notdir $(wildcard $(srctree)/logo_kernel.bmp))
-%.img: %.dtb kernel.img $(LOGO) $(LOGO_KERNEL)
-	$(Q)$(srctree)/resource_tool $(objtree)/arch/arm/boot/dts/$*.dtb $(LOGO) $(LOGO_KERNEL)
-	@echo '  Image:  resource.img (with $*.dtb $(LOGO) $(LOGO_KERNEL)) is ready'
