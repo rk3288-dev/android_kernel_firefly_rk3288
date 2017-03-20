@@ -13,7 +13,7 @@
 CONFIG ?= default
 
 # Validate selected config
-ifneq ($(shell [ -d $(src)/arch-$(CONFIG) ] && [ -f  $(src)/arch-$(CONFIG)/config.h ] && echo "OK"), OK)
+ifneq (,$(wildcard arch-$(CONFIG)/config.h))
 $(warning Current directory is $(src))
 $(error No configuration found for config $(CONFIG). Check that arch-$(CONFIG)/config.h exists)
 else
