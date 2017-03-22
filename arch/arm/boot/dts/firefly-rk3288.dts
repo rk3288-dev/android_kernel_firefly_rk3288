@@ -147,17 +147,15 @@
 		compatible = "gpio-leds";
 
 		power {
-			label = "firefly:blue:power";
-			linux,default-trigger = "ir-power-click";
-			default-state = "on";
+			label = "blue";
 			gpios = <&gpio8 GPIO_A1 GPIO_ACTIVE_LOW>;
+			default-state = "on";
 		};
 
 		user {
-			label = "firefly:yellow:user";
-			linux,default-trigger = "ir-user-click";
-			default-state = "off";
+			label = "yellow";
 			gpios = <&gpio8 GPIO_A2 GPIO_ACTIVE_LOW>;
+			default-state = "off";
 		};
 	};
 
