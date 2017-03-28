@@ -15,7 +15,7 @@
 #define DDC_I2C_RATE		50*1000
 #define EDID_LENGTH 128
 
-#define DEFAULT_MODE      10
+#define VGA_DEFAULT_MODE 10
 
 extern  struct fb_videomode sda7123_vga_mode[];
 extern int get_vga_mode_len(void);
@@ -298,7 +298,7 @@ static struct fb_videomode *vga_find_best_mode(void)
 
 int vga_switch_default_screen(void)
 {
-	int i, mode_num = DEFAULT_MODE;
+	int i, mode_num = VGA_DEFAULT_MODE;
 	const struct fb_videomode *mode = NULL;
 	static int init_flag = 0;
 	
