@@ -110,7 +110,7 @@ static int kbase_dev_nr;
 static DEFINE_MUTEX(kbase_dev_list_lock);
 static LIST_HEAD(kbase_dev_list);
 
-#define KERNEL_SIDE_DDK_VERSION_STRING "K:" MALI_RELEASE_NAME "(GPL)"
+#define KERNEL_SIDE_DDK_VERSION_STRING "K:r6p0-02rel0"
 static inline void __compile_time_asserts(void)
 {
 	CSTD_COMPILE_TIME_ASSERT(sizeof(KERNEL_SIDE_DDK_VERSION_STRING) <= KBASE_GET_VERSION_BUFFER_SIZE);
