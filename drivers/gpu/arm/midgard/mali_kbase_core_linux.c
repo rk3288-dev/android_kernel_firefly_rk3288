@@ -103,7 +103,7 @@ EXPORT_SYMBOL(shared_kernel_test_data);
 
 #define KBASE_DRV_NAME "mali"
 /* rk_ext : version of rk_ext on mali_ko, aka. rk_ko_ver. */
-#define ROCKCHIP_VERSION    (13)
+#define ROCKCHIP_VERSION    (14)
 
 static int kbase_dev_nr;
 
