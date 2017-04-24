@@ -339,6 +339,7 @@
 };
 
 &uart_gps {
+	current-speed = <9600>;
 	status = "okay";
 };
 
