@@ -170,29 +170,14 @@ ifeq ($(CONFIG_MALI_PLATFORM_FAKE),y)
 		platform/a7_kipling/mali_kbase_cpu_a7_kipling.c
 		ccflags-y += -I$(src)/platform/a7_kipling
 	endif
-
-	ifeq ($(CONFIG_MALI_PLATFORM_THIRDPARTY),y)
-	# remove begin and end quotes from the Kconfig string type
-	platform_name := $(shell echo $(CONFIG_MALI_PLATFORM_THIRDPARTY_NAME))
-	MALI_PLATFORM_THIRDPARTY_DIR := platform/$(platform_name)
-	ccflags-y += -I$(src)/$(MALI_PLATFORM_THIRDPARTY_DIR)
-	ifeq ($(CONFIG_MALI_MIDGARD),m)
-	include  $(src)/platform/$(platform_name)/Kbuild
-	else ifeq ($(CONFIG_MALI_MIDGARD),y)
-	obj-$(CONFIG_MALI_MIDGARD) += platform/
-	endif
-	endif
 endif # CONFIG_MALI_PLATFORM_FAKE=y
 
-ifeq ($(CONFIG_MALI_PLATFORM_THIRDPARTY),y)
-# remove begin and end quotes from the Kconfig string type
-platform_name := $(shell echo $(CONFIG_MALI_PLATFORM_THIRDPARTY_NAME))
-MALI_PLATFORM_THIRDPARTY_DIR := platform/$(platform_name)
-ccflags-y += -I$(src)/$(MALI_PLATFORM_THIRDPARTY_DIR)
+ifeq ($(CONFIG_MALI_PLATFORM_ROCKCHIP),y)
+ccflags-y += -I$(src)/platform/rk
 ifeq ($(CONFIG_MALI_MIDGARD),m)
-include  $(src)/platform/$(platform_name)/Kbuild
+include  $(src)/platform/rk/Kbuild
 else ifeq ($(CONFIG_MALI_MIDGARD),y)
-obj-$(CONFIG_MALI_MIDGARD) += platform/
+obj-$(CONFIG_MALI_MIDGARD) += platform/rk/
 endif
 endif
 
