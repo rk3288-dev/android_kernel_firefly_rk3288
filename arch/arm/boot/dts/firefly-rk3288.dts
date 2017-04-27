@@ -149,7 +149,7 @@
 		power {
 			label = "blue";
 			gpios = <&gpio8 GPIO_A1 GPIO_ACTIVE_LOW>;
-			default-state = "on";
+			default-state = "off";
 		};
 
 		user {
